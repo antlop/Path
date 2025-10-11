@@ -56,8 +56,11 @@ namespace AML.Survivors
 
             foreach(var (animatorRef, entity) in SystemAPI.Query<PlayerAnimatorReference>().WithNone<PlayerGameObjectPrefab, LocalTransform>().WithEntityAccess())
             {
-                Object.Destroy(animatorRef.Value.gameObject);
-                ecb.RemoveComponent<EnemyAnimatorReference>(entity);
+                if (animatorRef.Value != null)
+                {
+                    Object.Destroy(animatorRef.Value.gameObject);
+                    ecb.RemoveComponent<EnemyAnimatorReference>(entity);
+                }
             }
 
             ecb.Playback(state.EntityManager);
