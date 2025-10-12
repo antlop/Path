@@ -1,4 +1,5 @@
 using Unity.Entities;
+using Unity.Transforms;
 using UnityEngine;
 
 namespace AML.Survivors
@@ -34,6 +35,19 @@ namespace AML.Survivors
                 });
                 AddComponent<DestroyEntityFlag>(entity);
                 SetComponentEnabled<DestroyEntityFlag>(entity, false);
+            }
+        }
+    }
+
+    //var newAttack = ecb.Instantiate(attackData.AttackPrefab);
+
+    public partial struct PillarOfSaltAbilityAttackSystem : ISystem
+    {
+        public void OnUpdate(ref SystemState state)
+        {
+            foreach(var (updateData, data, transform) in SystemAPI.Query<RefRW<PillarOfSaltAbilityUpdateData>, PillarOfSaltAbilityData,LocalTransform>())
+            {
+
             }
         }
     }
