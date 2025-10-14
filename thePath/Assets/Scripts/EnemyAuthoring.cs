@@ -6,6 +6,7 @@ using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Unity.Collections;
+using System.Numerics;
 
 namespace AML.Survivors
 {
@@ -74,6 +75,8 @@ namespace AML.Survivors
             };
 
             state.Dependency = moveToPlayerJob.ScheduleParallel(state.Dependency);
+            state.Dependency.Complete();
+
         }
     }
 
@@ -84,10 +87,11 @@ namespace AML.Survivors
         // information used by all entities
         public float2 PlayerPosition;
 
-        private void Execute(ref CharacterMoveDirection direction, in /*reading from*/ LocalTransform transform)
+        private void Execute(ref CharacterMoveDirection direction, ref /*reading from*/ LocalTransform transform)
         {
             var vectorToPlayer = PlayerPosition - transform.Position.xz;
             direction.Value = math.normalize(vectorToPlayer);
+            transform.Rotation.value = quaternion.LookRotation(new float3(vectorToPlayer.x, 0, vectorToPlayer.y), math.up()).value;
         }
     }
 

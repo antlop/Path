@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
-using static AML.Survivors.GoodWordAuthoring;
+using Unity.Burst;
 
 namespace AML.Survivors
 {
@@ -13,6 +13,8 @@ namespace AML.Survivors
         public int AttackDamage;
         public float DamageFrequency;
         public float Lifetime;
+        public float StartSize;
+        public float EndSize;
     }
 
     public struct PillarOfSaltUpdateData : IComponentData
@@ -27,6 +29,7 @@ namespace AML.Survivors
         public int Damage;
         public float Lifetime;
         public float DamageFrequency;
+        public Vector2 SizeStartEnd;
 
         private class Baker : Baker<PIllarOfSaltAuthoring>
         {
@@ -39,6 +42,8 @@ namespace AML.Survivors
                     AttackDamage = authoring.Damage,
                     Lifetime = authoring.Lifetime,
                     DamageFrequency = authoring.DamageFrequency,
+                    StartSize = authoring.SizeStartEnd.x,
+                    EndSize = authoring.SizeStartEnd.y
                 });
                 AddComponent(entity, new PillarOfSaltUpdateData
                 {
@@ -62,12 +67,17 @@ namespace AML.Survivors
     {
         public void OnUpdate(ref SystemState state)
         {
-            var detlaTime = SystemAPI.Time.DeltaTime;
-            foreach (var (transform, data) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<PillarOfSaltUpdateData>>())
+            var deltaTime = SystemAPI.Time.DeltaTime;
+            foreach (var (transform, updateData, data) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<PillarOfSaltUpdateData>, RefRO<PillarOfSaltData>>())
             {
-                transform.ValueRW.Scale += detlaTime;
-                data.ValueRW.LifetimeBucket -= detlaTime;
-                data.ValueRW.DamageFrequencyBucket -= detlaTime;
+
+                updateData.ValueRW.LifetimeBucket -= deltaTime;
+
+                var percentOfLifetime = 1 - ((updateData.ValueRO.LifetimeBucket - 0.000001f) / data.ValueRO.Lifetime);
+                var currentScale = (data.ValueRO.EndSize - data.ValueRO.StartSize) * percentOfLifetime;
+
+                transform.ValueRW.Scale = data.ValueRO.StartSize + currentScale;
+                updateData.ValueRW.DamageFrequencyBucket -= deltaTime;
             }
         }
     }
@@ -76,6 +86,7 @@ namespace AML.Survivors
     {
         public ComponentLookup<DestroyEntityFlag> DestroyEntityFlagLookup;
 
+        [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
             DestroyEntityFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>();
@@ -83,7 +94,6 @@ namespace AML.Survivors
 
             foreach (var (data, entity) in SystemAPI.Query<RefRW<PillarOfSaltUpdateData>>().WithPresent<DestroyEntityFlag>().WithEntityAccess())
             {
-                data.ValueRW.LifetimeBucket -= detlaTime;
                 if (data.ValueRO.LifetimeBucket <= 0)
                 {
                     DestroyEntityFlagLookup.SetComponentEnabled(entity, true);
@@ -97,6 +107,7 @@ namespace AML.Survivors
     [UpdateBefore(typeof(AfterPhysicsSystemGroup))]
     public partial struct PillarOfSaltAttackSystem : ISystem
     {
+        [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
             var attackJob = new PillarOfSaltAttackJob
@@ -108,6 +119,7 @@ namespace AML.Survivors
 
             var simSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
             state.Dependency = attackJob.Schedule(simSingleton, state.Dependency);
+            state.Dependency.Complete();
         }
     }
 

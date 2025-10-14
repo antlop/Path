@@ -1,3 +1,5 @@
+using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
@@ -35,6 +37,7 @@ namespace AML.Survivors
     [UpdateInGroup(typeof(PresentationSystemGroup), OrderFirst = true)]
     public partial struct EnemyAnimateSystem : ISystem
     {
+        [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
             var ecb = new EntityCommandBuffer(Unity.Collections.Allocator.Temp);
@@ -51,7 +54,7 @@ namespace AML.Survivors
 
             foreach(var (transform, animatorReference, enemytag) in SystemAPI.Query<LocalTransform, EnemyAnimatorReference, EnemyTag>())
             {
-                animatorReference.Value.SetTrigger("Walk");
+                animatorReference.Value.SetFloat("WalkSpeed", 1);
                 animatorReference.Value.transform.position = transform.Position;
                 animatorReference.Value.transform.rotation = transform.Rotation;
             }

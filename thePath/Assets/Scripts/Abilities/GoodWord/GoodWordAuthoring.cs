@@ -64,6 +64,7 @@ namespace AML.Survivors
 
                 var simSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
                 state.Dependency = attackJob.Schedule(simSingleton, state.Dependency);
+                state.Dependency.Complete();
             }
         }
 
