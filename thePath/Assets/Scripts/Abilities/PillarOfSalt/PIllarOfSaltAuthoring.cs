@@ -4,6 +4,7 @@ using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
 using Unity.Burst;
+using Random = Unity.Mathematics.Random;
 
 namespace AML.Survivors
 {
@@ -21,6 +22,12 @@ namespace AML.Survivors
     {
         public float DamageFrequencyBucket;
         public float LifetimeBucket;
+        public Random random;
+    }
+
+    public struct DamageList : IBufferElementData
+    {
+        public Entity Value;
     }
 
     public class PIllarOfSaltAuthoring : MonoBehaviour
@@ -30,6 +37,7 @@ namespace AML.Survivors
         public float Lifetime;
         public float DamageFrequency;
         public Vector2 SizeStartEnd;
+        public uint randomSeed;
 
         private class Baker : Baker<PIllarOfSaltAuthoring>
         {
@@ -48,8 +56,10 @@ namespace AML.Survivors
                 AddComponent(entity, new PillarOfSaltUpdateData
                 {
                     LifetimeBucket = authoring.Lifetime,
-                    DamageFrequencyBucket = authoring.DamageFrequency
+                    DamageFrequencyBucket = authoring.DamageFrequency,
+                    random = Random.CreateFromIndex(authoring.randomSeed)
                 });
+                AddBuffer<DamageList>(entity);
                 AddComponent<DestroyEntityFlag>(entity);
                 SetComponentEnabled<DestroyEntityFlag>(entity, false);
             }
@@ -68,7 +78,7 @@ namespace AML.Survivors
         public void OnUpdate(ref SystemState state)
         {
             var deltaTime = SystemAPI.Time.DeltaTime;
-            foreach (var (transform, updateData, data) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<PillarOfSaltUpdateData>, RefRO<PillarOfSaltData>>())
+            foreach (var (transform, updateData, data, dmgList) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<PillarOfSaltUpdateData>, RefRO<PillarOfSaltData>, DynamicBuffer<DamageList>>())
             {
 
                 updateData.ValueRW.LifetimeBucket -= deltaTime;
@@ -77,7 +87,20 @@ namespace AML.Survivors
                 var currentScale = (data.ValueRO.EndSize - data.ValueRO.StartSize) * percentOfLifetime;
 
                 transform.ValueRW.Scale = data.ValueRO.StartSize + currentScale;
+
+
+                // apply damage to enemies
                 updateData.ValueRW.DamageFrequencyBucket -= deltaTime;
+                if (updateData.ValueRW.DamageFrequencyBucket < 0)
+                {
+                    updateData.ValueRW.DamageFrequencyBucket = data.ValueRO.DamageFrequency;
+
+                    foreach (var obj in dmgList)
+                    {
+                        SystemAPI.GetBufferLookup<DamageThisFrame>()[obj.Value].Add(new DamageThisFrame { Value = data.ValueRO.AttackDamage });
+                    }
+                    dmgList.Clear();
+                }
             }
         }
     }
@@ -110,11 +133,18 @@ namespace AML.Survivors
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
+            // damage frequency
+
             var attackJob = new PillarOfSaltAttackJob
             {
-                goodWordLookup = SystemAPI.GetComponentLookup<PillarOfSaltData>(true),
+                pillarofsaltLookup = SystemAPI.GetComponentLookup<PillarOfSaltData>(true),
+                pillarofsaltupdateLookup = SystemAPI.GetComponentLookup<PillarOfSaltUpdateData>(false),
+                damageListLookup = SystemAPI.GetBufferLookup<DamageList>(false),
                 enemyLookup = SystemAPI.GetComponentLookup<EnemyTag>(true),
-                DamageBufferLookup = SystemAPI.GetBufferLookup<DamageThisFrame>()
+                CritChance = PlayerStatSheet.instance.CriticalStrikeChance,
+                CritDamage = PlayerStatSheet.instance.CriticalStrikeDamageModifier,
+                DamageMod = PlayerStatSheet.instance.DamageModifier,
+                time = (uint)(SystemAPI.Time.ElapsedTime)
             };
 
             var simSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
@@ -126,22 +156,31 @@ namespace AML.Survivors
     //////////////////////////////////////////////////////////
     public struct PillarOfSaltAttackJob : ITriggerEventsJob
     {
-        [Unity.Collections.ReadOnly] public ComponentLookup<PillarOfSaltData> goodWordLookup;
+        [Unity.Collections.ReadOnly] public ComponentLookup<PillarOfSaltData> pillarofsaltLookup;
+        public ComponentLookup<PillarOfSaltUpdateData> pillarofsaltupdateLookup;
+        public BufferLookup<DamageList> damageListLookup;
         [Unity.Collections.ReadOnly] public ComponentLookup<EnemyTag> enemyLookup;
-        public BufferLookup<DamageThisFrame> DamageBufferLookup;
+        public float CritChance;
+        public float CritDamage;
+        public float DamageMod;
+        public float time;
+
+        public float outputRandomNumber;
+
         public void Execute(TriggerEvent triggerEvent)
         {
-            Entity GoodWordEntity;
+            Entity PillarOfSaltEntity;
             Entity EnemyEntity;
+            Random rand = Random.CreateFromIndex((uint)(time));
 
-            if (goodWordLookup.HasComponent(triggerEvent.EntityA) && enemyLookup.HasComponent(triggerEvent.EntityB))
+            if (pillarofsaltLookup.HasComponent(triggerEvent.EntityA) && enemyLookup.HasComponent(triggerEvent.EntityB))
             {
-                GoodWordEntity = triggerEvent.EntityA;
+                PillarOfSaltEntity = triggerEvent.EntityA;
                 EnemyEntity = triggerEvent.EntityB;
             }
-            else if (goodWordLookup.HasComponent(triggerEvent.EntityB) && enemyLookup.HasComponent(triggerEvent.EntityA))
+            else if (pillarofsaltLookup.HasComponent(triggerEvent.EntityB) && enemyLookup.HasComponent(triggerEvent.EntityA))
             {
-                GoodWordEntity = triggerEvent.EntityB;
+                PillarOfSaltEntity = triggerEvent.EntityB;
                 EnemyEntity = triggerEvent.EntityA;
             }
             else
@@ -149,12 +188,32 @@ namespace AML.Survivors
                 return;
             }
 
-            var attackDamage = goodWordLookup[GoodWordEntity].AttackDamage;
-            var enemydamageBuffer = DamageBufferLookup[EnemyEntity];
-            enemydamageBuffer.Add(new DamageThisFrame { Value = attackDamage });
 
-            // This will be done over time
-           // DestroyEntityFlagLookup.SetComponentEnabled(GoodWordEntity, true);
+            // ** Damage
+            var attackDamage = pillarofsaltLookup[PillarOfSaltEntity].AttackDamage;
+            attackDamage = (int)(attackDamage * DamageMod);
+            var randnum = (int)(rand.NextFloat() * 100);
+
+            if (CritChance > randnum)
+            {
+                float adjustedDmg = attackDamage * CritDamage;
+                if (adjustedDmg % 1.0f >= 0.5f)
+                {
+                    adjustedDmg++;
+                }
+                attackDamage = (int)adjustedDmg;
+                Debug.Log("Crit! " + attackDamage + " PoS");
+            }
+            else
+            {
+                Debug.Log(attackDamage + " PoS");
+            }
+            //
+
+            // var enemydamageBuffer = DamageBufferLookup[EnemyEntity];
+
+            // ADD the enemy Entity to a buffer of enemies to apply the damage to
+            damageListLookup[PillarOfSaltEntity].Add(new DamageList { Value = EnemyEntity });
         }
     }
 }

@@ -89,9 +89,14 @@ namespace AML.Survivors
             foreach(var (hitpoints, damagethisframe, entity) in SystemAPI.Query<RefRW<CharacterCurrentHitPoints>, DynamicBuffer<DamageThisFrame>>().WithPresent<DestroyEntityFlag>().WithEntityAccess())
             {
                 if(damagethisframe.IsEmpty) continue;
-                foreach(var damage in damagethisframe)
+                int dmgReduction = 0;
+                if (SystemAPI.HasComponent<SpiritualHedgeFlag>(entity) && SystemAPI.IsComponentEnabled<SpiritualHedgeFlag>(entity))
                 {
-                    hitpoints.ValueRW.Value -= damage.Value;
+                    dmgReduction = PlayerStatSheet.instance.DamageReduction;
+                }
+                foreach (var damage in damagethisframe)
+                {
+                    hitpoints.ValueRW.Value -= (damage.Value - dmgReduction);
                 }
                 damagethisframe.Clear();
 

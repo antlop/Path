@@ -72,6 +72,8 @@ namespace AML.Survivors
                 AddComponent<PlayerCooldownExpirationTimestamp>(entity);
                 AddComponent<XPOrbsCollectedCount>(entity);
                 AddComponent<UpdateXPOrbFlag>(entity);
+                AddComponent<SpiritualHedgeFlag>(entity);
+                SetComponentEnabled<SpiritualHedgeFlag>(entity,false);
             }
         }
     }

@@ -233,3 +233,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MoveSpeed: 8
   AttackDamage: 4
+  randomSeed: 3267454
