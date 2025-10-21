@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 011c709878b1bd045b7ca83432616722
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 153642
+  packageName: Stylized Fantasy Sword
+  packageVersion: 1.0
+  assetPath: Assets/3D Assets/Stylized Fantasy Sword/Shaders/Unlit_effect_Evil.shadergraph
+  uploadId: 328547

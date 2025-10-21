@@ -73,10 +73,14 @@ namespace AML.Survivors
     /// 
 
 
+    [UpdateInGroup(typeof(PhysicsSystemGroup))]
+    [UpdateAfter(typeof(PhysicsSimulationGroup))]
+    [UpdateBefore(typeof(AfterPhysicsSystemGroup))]
     public partial struct GrowPilarOfSaltSystem : ISystem
     {
         public void OnUpdate(ref SystemState state)
         {
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var deltaTime = SystemAPI.Time.DeltaTime;
             foreach (var (transform, updateData, data, dmgList) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<PillarOfSaltUpdateData>, RefRO<PillarOfSaltData>, DynamicBuffer<DamageList>>())
             {
@@ -97,7 +101,10 @@ namespace AML.Survivors
 
                     foreach (var obj in dmgList)
                     {
-                        SystemAPI.GetBufferLookup<DamageThisFrame>()[obj.Value].Add(new DamageThisFrame { Value = data.ValueRO.AttackDamage });
+                        if (entityManager.Exists(obj.Value))
+                        {
+                            SystemAPI.GetBufferLookup<DamageThisFrame>()[obj.Value].Add(new DamageThisFrame { Value = data.ValueRO.AttackDamage });
+                        }
                     }
                     dmgList.Clear();
                 }
@@ -213,7 +220,18 @@ namespace AML.Survivors
             // var enemydamageBuffer = DamageBufferLookup[EnemyEntity];
 
             // ADD the enemy Entity to a buffer of enemies to apply the damage to
-            damageListLookup[PillarOfSaltEntity].Add(new DamageList { Value = EnemyEntity });
+            bool found = false;
+            foreach(var dmgObj in damageListLookup[PillarOfSaltEntity])
+            {
+                if( dmgObj.Value == EnemyEntity)
+                {
+                    found = true; break;
+                }
+            }
+            if( !found )
+            {
+                damageListLookup[PillarOfSaltEntity].Add(new DamageList { Value = EnemyEntity });
+            }
         }
     }
 }

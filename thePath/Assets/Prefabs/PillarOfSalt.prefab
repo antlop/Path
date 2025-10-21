@@ -50,8 +50,9 @@ MonoBehaviour:
   Radius: 2.5
   Damage: 1
   Lifetime: 5
-  DamageFrequency: 0.5
+  DamageFrequency: 0.2
   SizeStartEnd: {x: 3, y: 6}
+  randomSeed: 0
 --- !u!33 &1525387868404288809
 MeshFilter:
   m_ObjectHideFlags: 0
