@@ -509,6 +509,7 @@ GameObject:
   - component: {fileID: 1821906128}
   - component: {fileID: 1821906136}
   - component: {fileID: 1821906137}
+  - component: {fileID: 1821906138}
   m_Layer: 6
   m_Name: Player
   m_TagString: Untagged
@@ -705,6 +706,22 @@ MonoBehaviour:
   CooldownRate: 8
   prefab: {fileID: 3002113088102458525, guid: 58a2da1fe94481c4a92a777fedbb9a2c, type: 3}
   randomSeed: 9526
+--- !u!114 &1821906138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1821906127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e83b7ca269207a44d952939d79a373da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Range: 3.5
+  CooldownRate: 3
+  prefab: {fileID: 1910804088534588227, guid: dc3ac44feb1ba9b489d6e7f71ab091c3, type: 3}
+  randomSeed: 76786
 --- !u!1 &1998174889
 GameObject:
   m_ObjectHideFlags: 0
