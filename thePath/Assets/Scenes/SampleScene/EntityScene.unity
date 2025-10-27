@@ -257,7 +257,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EnemyPrefab: {fileID: 3869189020487077908, guid: 761fb81d498636a43afc8ed22a4a7811, type: 3}
-  SpawnInterval: 5
+  SpawnInterval: 1
   SpawnDistance: 25
   randomSeed: 1337
 --- !u!4 &1453375992
@@ -660,7 +660,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   AttackPrefab: {fileID: 2257418062174039886, guid: a118dfec876f9a54d9a050eb405cfeb5, type: 3}
-  CooldownTime: 999
+  CooldownTime: 2
   DetectionSize: 10
 --- !u!114 &1821906135
 MonoBehaviour:

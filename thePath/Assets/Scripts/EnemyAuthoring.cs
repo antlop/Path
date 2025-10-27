@@ -154,7 +154,7 @@ namespace AML.Survivors
             CooldownExpirationTimestampLookup.SetComponentEnabled(enemyEntity, true);
 
             var playerDamageBuffer = DamageThisFrameLookup[playerEntity];
-            playerDamageBuffer.Add(new DamageThisFrame { Value = attackData.HitPoints });
+            playerDamageBuffer.Add(new DamageThisFrame { Value = attackData.HitPoints, Crit = false });
         }
     }
 }

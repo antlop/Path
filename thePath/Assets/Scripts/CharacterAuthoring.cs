@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
+using Unity.Transforms;
 using UnityEngine;
 
 namespace AML.Survivors
@@ -30,6 +31,7 @@ namespace AML.Survivors
     public struct DamageThisFrame : IBufferElementData //data type is like a list
     {
         public int Value;
+        public bool Crit;
     }
 
     public class CharacterAuthoring : MonoBehaviour
@@ -86,17 +88,32 @@ namespace AML.Survivors
     {
         public void OnUpdate(ref SystemState state)
         {
-            foreach(var (hitpoints, damagethisframe, entity) in SystemAPI.Query<RefRW<CharacterCurrentHitPoints>, DynamicBuffer<DamageThisFrame>>().WithPresent<DestroyEntityFlag>().WithEntityAccess())
+            foreach(var (hitpoints, damagethisframe, transform, entity) in SystemAPI.Query<RefRW<CharacterCurrentHitPoints>, DynamicBuffer<DamageThisFrame>, RefRO<LocalTransform>>().WithPresent<DestroyEntityFlag>().WithEntityAccess())
             {
                 if(damagethisframe.IsEmpty) continue;
                 int dmgReduction = 0;
+                bool isPlayer = false;
+                if (SystemAPI.HasComponent<PlayerTag>(entity))
+                {
+                    isPlayer = true;
+                }
+
                 if (SystemAPI.HasComponent<SpiritualHedgeFlag>(entity) && SystemAPI.IsComponentEnabled<SpiritualHedgeFlag>(entity))
                 {
                     dmgReduction = PlayerStatSheet.instance.DamageReduction;
                 }
+
                 foreach (var damage in damagethisframe)
                 {
                     hitpoints.ValueRW.Value -= (damage.Value - dmgReduction);
+
+                    if (!isPlayer)
+                    {
+                        MainThreadBridge.Instance.RunOnMainThread(() =>
+                        {
+                            ObjectPool.Instance.SpawnDamageNumber((damage.Value - dmgReduction), damage.Crit, transform.ValueRO.Position);
+                        });
+                    }
                 }
                 damagethisframe.Clear();
 

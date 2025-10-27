@@ -103,7 +103,7 @@ namespace AML.Survivors
                     {
                         if (entityManager.Exists(obj.Value))
                         {
-                            SystemAPI.GetBufferLookup<DamageThisFrame>()[obj.Value].Add(new DamageThisFrame { Value = data.ValueRO.AttackDamage });
+                            SystemAPI.GetBufferLookup<DamageThisFrame>()[obj.Value].Add(new DamageThisFrame { Value = data.ValueRO.AttackDamage, Crit = false });
                         }
                     }
                     dmgList.Clear();
@@ -200,6 +200,7 @@ namespace AML.Survivors
             var attackDamage = pillarofsaltLookup[PillarOfSaltEntity].AttackDamage;
             attackDamage = (int)(attackDamage * DamageMod);
             var randnum = (int)(rand.NextFloat() * 100);
+            bool didCrit = false;
 
             if (CritChance > randnum)
             {
@@ -210,6 +211,7 @@ namespace AML.Survivors
                 }
                 attackDamage = (int)adjustedDmg;
                 Debug.Log("Crit! " + attackDamage + " PoS");
+                didCrit = true;
             }
             else
             {

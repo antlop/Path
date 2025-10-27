@@ -23,6 +23,7 @@ public class DamageNumberController : MonoBehaviour
         }
         GetComponentInChildren<TMP_Text>().text = text;
         GetComponentInChildren<TMP_Text>().fontSize = 10;
+        transform.GetChild(0).localPosition = Vector3.zero;
     }
 
     private void Update()
@@ -35,7 +36,7 @@ public class DamageNumberController : MonoBehaviour
     {
         if( bucket > lifetime)
         {
-            Destroy(gameObject);
+            GetComponent<PooledObject>().DestroyObject();
             return;
         }
 
@@ -43,8 +44,7 @@ public class DamageNumberController : MonoBehaviour
 
         float posOffset = 2f * percent;
 
-        transform.position = new Vector3(0,0, posOffset);
-
-        transform.LookAt(Camera.main.transform);
+        transform.GetChild(0).localPosition = new Vector3(0,0, posOffset);
+      
     }
 }

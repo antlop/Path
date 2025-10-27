@@ -109,10 +109,12 @@ namespace AML.Survivors
                 var attackDamage = goodWordLookup[GoodWordEntity].AttackDamage;
                 attackDamage = (int)(attackDamage * DamageMod);
                 var rand = goodWordLookup[GoodWordEntity].random.NextFloat() * 100;
+                bool crit = false;
                 
                 if(CritChance > rand)
                 {
                     attackDamage = (int)(attackDamage * CritDamage);
+                    crit = true;
                     Debug.Log("Crit! " +  attackDamage + " GW");
                 } else
                 {
@@ -122,7 +124,7 @@ namespace AML.Survivors
 
 
                 var enemydamageBuffer = DamageBufferLookup[EnemyEntity];
-                enemydamageBuffer.Add(new DamageThisFrame { Value = attackDamage });
+                enemydamageBuffer.Add(new DamageThisFrame { Value = attackDamage, Crit = crit });
 
                 DestroyEntityFlagLookup.SetComponentEnabled(GoodWordEntity, true);
             }
